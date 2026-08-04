@@ -42,21 +42,9 @@ from pathlib import Path
 # and this is then a no-op.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from common.gpxtools import read_segments
+from common.gpxtools import points_in_bbox, read_segments
 from maps.layers import DEFAULT_LAYER, LAYERS, resolve_layer
 from maps.mapgen import _draw_attribution
-
-
-def in_bbox(points, bbox):
-    """True if any of a route's points fall inside (south, west, north, east).
-
-    A route is kept when it has at least one point in the box, so a track that
-    merely clips the region still counts. With bbox None, every route is kept.
-    """
-    if bbox is None:
-        return True
-    south, west, north, east = bbox
-    return any(south <= lat <= north and west <= lon <= east for lat, lon, _ in points)
 
 
 def render_multimap(
@@ -129,7 +117,7 @@ def main(argv=None):
             # Keep a whole file if any of its segments touches the bbox, then
             # draw each segment as its own line, so legs split at a teleport stay apart.
             drawable = [seg for seg in segments if len(seg) >= 2]
-            if not drawable or not any(in_bbox(seg, args.bbox) for seg in drawable):
+            if not drawable or not any(points_in_bbox(seg, args.bbox) for seg in drawable):
                 skipped.append(path)
                 continue
             routes.extend(drawable)

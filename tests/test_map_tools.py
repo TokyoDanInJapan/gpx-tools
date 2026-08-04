@@ -11,32 +11,32 @@ import json
 import pytest
 from conftest import northward
 
-from common.gpxtools import read_points
+from common.gpxtools import points_in_bbox, read_points
 from common.prefectures import PrefectureLocator
-from maps import multimap, prefecture_map
+from maps import prefecture_map
 
-# --- multimap ---------------------------------------------------------------
+# --- which routes belong on a map ------------------------------------------
 
 def test_a_route_inside_the_box_is_kept(track):
     points = read_points(track([northward(5)]))
-    assert multimap.in_bbox(points, (24.0, 122.0, 46.0, 154.0)) is True
+    assert points_in_bbox(points, (24.0, 122.0, 46.0, 154.0)) is True
 
 
 def test_a_route_outside_the_box_is_dropped(track):
     """This is how the Japan maps leave the overseas rides off."""
     points = read_points(track([northward(5, start_lat=-43.5)]))
-    assert multimap.in_bbox(points, (24.0, 122.0, 46.0, 154.0)) is False
+    assert points_in_bbox(points, (24.0, 122.0, 46.0, 154.0)) is False
 
 
 def test_a_route_that_merely_clips_the_box_is_kept(track):
     """One point inside is enough: a ride to the border still happened there."""
     points = read_points(track([northward(5, start_lat=45.999, step_deg=0.01)]))
-    assert multimap.in_bbox(points, (24.0, 122.0, 46.0, 154.0)) is True
+    assert points_in_bbox(points, (24.0, 122.0, 46.0, 154.0)) is True
 
 
 def test_no_box_keeps_everything(track):
     points = read_points(track([northward(5, start_lat=-43.5)]))
-    assert multimap.in_bbox(points, None) is True
+    assert points_in_bbox(points, None) is True
 
 
 # --- prefecture map ---------------------------------------------------------

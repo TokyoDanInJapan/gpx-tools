@@ -6,7 +6,9 @@ model under it.
 | module | what it does |
 | --- | --- |
 | `elevation.py` | the gradient bands, the simplifier, and the profile SVG |
+| `sampling.py` | the tile fetching, the window, and the grid the two tools below share |
 | `gpx-voxel` | samples elevation tiles into a square height field around a track |
+| `gpx-stamps` | traces countries as coastline loops with their tracks drawn on |
 
 ## elevation.py has no command of its own
 
@@ -72,3 +74,30 @@ credit is a licence problem, not a styling choice - do not separate them.
 A multi-day tour gets a window kilometres across, so its cells are coarse and
 its relief heavily exaggerated. That is a property of fitting a square window to
 a long ride, not a bug - but whatever renders `cellM` should say so.
+
+## gpx-stamps
+
+```bash
+gpx-stamps --tracks-root rides --sidecar .md --grid 384 -o stamps.json
+```
+
+Line work rather than a picture: each country in `REGIONS` comes out as
+simplified coastline loops plus whatever tracks fall inside it, in unit-square
+coordinates ready to draw at any size. It was written to be stamped into an
+animation and dissolved, but nothing here knows what draws it.
+
+Entirely offline, and no API key. Japan's land comes from the prefecture
+polygons that ship with the package, and the UK and New Zealand from Natural
+Earth's public-domain 50m country polygons. The coast is traced by marching
+cell edges rather than polygon outlines, which is what unions Japan's 47
+prefectures for free: an edge between two land cells is interior and never
+emitted, so the internal borders vanish and only the coastline remains.
+
+Two things are easy to undo:
+
+- **A closed ring is simplified in two halves.** Run Douglas-Peucker naively on
+  a ring whose ends coincide and the baseline has zero length, every deviation
+  measures zero, and the whole coast collapses to a point.
+- **A track outside every region is printed, not dropped.** It usually means a
+  region worth adding rather than a mistake, and a silent drop looks identical
+  to a bug.
