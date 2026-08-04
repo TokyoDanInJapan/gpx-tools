@@ -1,0 +1,114 @@
+# Lint, test, and prove the package still builds.
+#
+# The build step is here rather than only in `release.yml` on purpose. A broken
+# `pyproject.toml` otherwise stays invisible until the moment a tag is pushed,
+# which is the worst time to find it.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The oldest version the package claims to support, and the newest it is
+        # expected to run on. The versions between them share the same code path.
+        python-version: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      # The extras as well as the core, because the tests cover the tools that
+      # need them - the photograph placement in particular, whose timezone
+      # lookup is the part most likely to break on a dependency bump.
+      - run: pip install -e ".[all,dev]"
+
+      # Lint and import order. `ruff format` is deliberately not run: apart from
+      # its imports, each tool is laid out by hand for readability, and
+      # reformatting it wholesale would lose that.
+      - run: ruff check .
+
+      # The coverage floor lives in pyproject.toml, so a local run enforces the
+      # same number this job does.
+      - run: pytest -v --cov --cov-report=term-missing
+
+  # The core has one dependency and the standard library, and several tools are
+  # meant to run with nothing else installed. That claim is easy to break by
+  # adding an import, and invisible in the job above, which installs everything.
+  core-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - run: pip install .
+
+      - name: The offline tools run without the extras
+        run: |
+          gpx-stats --help
+          gpx-ridestats --help
+          gpx-merge --help
+          gpx-merge-segments --help
+          gpx-split --help
+          gpx-metadata --help
+          python -c "import terrain.elevation, common.prefectures"
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - run: pip install build twine
+
+      - name: Build the sdist and the wheel
+        run: python -m build
+
+      - name: Check the metadata
+        run: twine check dist/*
+
+      # Proof that what ships is what a user would install: the console scripts
+      # have to exist and run from the built wheel, not from the checkout. The
+      # prefecture boundaries have to be in there too - they are package data,
+      # which is the part that works from a checkout and breaks on install.
+      - name: Install the wheel and run each tool
+        run: |
+          python -m venv /tmp/check
+          /tmp/check/bin/pip install "$(echo dist/*.whl)[all]"
+          for tool in gpx-stats gpx-ridestats gpx-merge gpx-merge-segments \
+                      gpx-split gpx-metadata gpx-mapgen gpx-multimap \
+                      gpx-poi-check gpx-prefecture-map gpx-voxel \
+                      gpx-photo-points gpx-statcharts; do
+            /tmp/check/bin/$tool --help > /dev/null || exit 1
+          done
+          /tmp/check/bin/python -c "
+          from common.prefectures import PrefectureLocator
+          print(len(PrefectureLocator().prefs), 'prefectures shipped')
+          "
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist
+          path: dist/

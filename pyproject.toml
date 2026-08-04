@@ -1,0 +1,111 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gpx-tools"
+version = "1.0.0"
+description = "Turn a GPX track into the figures, maps, profiles and terrain models a ride report needs."
+readme = "README.md"
+requires-python = ">=3.9"
+# One dependency, and only two tools need it: the ones that read a post's YAML
+# frontmatter. Everything else in track/, terrain/elevation.py and common/ is
+# standard library, which is what lets a profile be regenerated on a machine
+# with nothing installed.
+dependencies = ["PyYAML>=6.0"]
+keywords = ["gpx", "cycling", "hiking", "elevation", "mapping", "openstreetmap"]
+# The table form of `license`, rather than the PEP 639 string, so this still
+# builds on setuptools older than 77.
+license = { text = "MIT" }
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: GIS",
+]
+
+# Grouped by what pulls them in, so a checkout that only wants stats and
+# elevation profiles does not install a plotting library to get them.
+[project.optional-dependencies]
+maps = ["staticmap>=0.5", "Pillow>=9.0"]
+charts = ["matplotlib>=3.5"]
+photos = ["Pillow>=9.0", "timezonefinder>=6.0"]
+all = ["staticmap>=0.5", "Pillow>=9.0", "matplotlib>=3.5", "timezonefinder>=6.0"]
+dev = [
+    "pytest>=7",
+    "pytest-cov>=4",
+    "ruff>=0.4",
+    "build>=1.0",
+]
+
+[project.urls]
+Repository = "https://github.com/TokyoDanInJapan/gpx-tools"
+
+[project.scripts]
+gpx-stats = "track.stats:main"
+gpx-ridestats = "track.ridestats:main"
+gpx-merge = "track.merge:main"
+gpx-merge-segments = "track.merge_segments:main"
+gpx-split = "track.split:main"
+gpx-metadata = "track.metadata:main"
+gpx-mapgen = "maps.mapgen:main"
+gpx-multimap = "maps.multimap:main"
+gpx-poi-check = "maps.poi_check:main"
+gpx-prefecture-map = "maps.prefecture_map:main"
+gpx-voxel = "terrain.voxel:main"
+gpx-photo-points = "photos.photo_points:main"
+gpx-statcharts = "charts.statcharts:main"
+
+# One package per category of tool, plus the helpers they share. Each tool also
+# stays runnable straight from a checkout with no install step: it puts the
+# repository root on the path itself.
+[tool.setuptools]
+packages = ["common", "charts", "maps", "photos", "terrain", "track"]
+
+# The prefecture boundaries are data the tools cannot work without, so they ship
+# inside the wheel rather than being downloaded or looked for on disk.
+[tool.setuptools.package-data]
+common = ["data/*.geojson"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+# "I" sorts imports. It also decides how a long one wraps, and ruff offers no
+# choice about that: one name per line, however the block was written before.
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = [
+    # `pad = lambda d: ...` in the metadata re-indenter reads better inline than
+    # a nested def, and the same is true of the sort keys elsewhere.
+    "E731",
+    # try/except/pass is clearer than contextlib.suppress here, and carries the
+    # comment explaining why the failure is ignored.
+    "SIM105",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Every tool inserts the repository root on sys.path before importing its own
+# packages, so those imports cannot sit at the top of the file.
+"*.py" = ["E402"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["common", "charts", "maps", "photos", "terrain", "track"]
+
+[tool.coverage.report]
+# The floor lives here rather than in the CI command, so a local run and the
+# workflow enforce the same number.
+#
+# It is 60 rather than the 90-odd a pure-logic package would hold, and the
+# difference is honest rather than lazy. Over half of this code draws - matplotlib
+# panels, staticmap tiles, JSON for a renderer - and a test can say that a file
+# appeared but not that the picture in it is right. What the suite does cover is
+# everywhere a wrong answer could hide: the geometry, the movement gates, the
+# gradient banding, the clock calibration, and the two outputs that are
+# verifiable to the byte, which are the profile SVG and the ride stats.
+fail_under = 60
+exclude_also = ['if __name__ == "__main__":']

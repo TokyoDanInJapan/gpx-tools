@@ -1,0 +1,127 @@
+# Turns a pushed `v*` tag into a GitHub Release carrying the built package.
+#
+# The tag stays the manual step, deliberately. Choosing a version number is a
+# judgement about what changed, which a workflow cannot make. This automates
+# everything after that decision and nothing before it.
+#
+# `ci.yml` does not cover this. It runs on pushes to `main` and on pull requests,
+# and a tag push is neither, so the checks below are the only ones that ever look
+# at the tagged tree.
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+# Only to create the release. Nothing here writes to a branch.
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The annotated tag's own message becomes the release notes, and that
+          # message lives in the tag object rather than in the ref, which a
+          # shallow checkout does not bring with it.
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - run: pip install -e ".[all,dev]" build twine
+
+      # The tag and the metadata have to agree, or the wheel carries a version
+      # that contradicts the release it is attached to. Cheap to check here and
+      # tedious to notice afterwards.
+      - name: Check the tag matches the version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          declared="$(python -c 'import tomllib,pathlib; print(tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"])')"
+          if [ "$tag" != "$declared" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match pyproject.toml version $declared"
+            exit 1
+          fi
+          echo "$GITHUB_REF_NAME matches pyproject.toml"
+
+      # The same gates ci.yml applies, run against the tagged tree.
+      - run: ruff check .
+      - run: pytest -v --cov
+
+      - name: Build the sdist and the wheel
+        run: python -m build
+
+      - name: Check the metadata
+        run: twine check dist/*
+
+      - name: Install the wheel and run each tool
+        run: |
+          python -m venv /tmp/check
+          /tmp/check/bin/pip install "$(echo dist/*.whl)[all]"
+          for tool in gpx-stats gpx-ridestats gpx-merge gpx-merge-segments \
+                      gpx-split gpx-metadata gpx-mapgen gpx-multimap \
+                      gpx-poi-check gpx-prefecture-map gpx-voxel \
+                      gpx-photo-points gpx-statcharts; do
+            /tmp/check/bin/$tool --help > /dev/null || exit 1
+          done
+
+      # `fetch-tags` is not enough on its own. actions/checkout resolves the tag
+      # ref to a commit and writes the local tag straight from that SHA, so what
+      # lands on the runner is a lightweight tag and the annotated object holding
+      # the message is absent. `%(contents:body)` then falls back to the commit
+      # message without saying so, which is how v1.0.0 was first published with
+      # the wrong notes entirely. Fetch the tag object itself.
+      - name: Restore the annotated tag object
+        run: |
+          git fetch --force origin \
+            "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+          kind="$(git cat-file -t "$GITHUB_REF_NAME")"
+          echo "$GITHUB_REF_NAME is a $kind object"
+          if [ "$kind" != "tag" ]; then
+            echo "::warning::$GITHUB_REF_NAME is lightweight, so it carries no message of its own"
+          fi
+
+      # The tag's message, minus its first line. `gh` uses the tag name as the
+      # title, so repeating it in the body would print it twice.
+      #
+      # Write the message as Markdown, because that is what it becomes. Tag with
+      # `--cleanup=verbatim`, or git strips every line beginning with `#` as a
+      # comment and silently deletes the headings.
+      - name: Take the notes from the tag
+        run: |
+          if [ "$(git cat-file -t "$GITHUB_REF_NAME")" = "tag" ]; then
+            git tag -l --format='%(contents:body)' "$GITHUB_REF_NAME" > release-notes.md
+          else
+            : > release-notes.md  # a commit message is not release notes
+          fi
+          if [ ! -s release-notes.md ]; then
+            echo "::warning::$GITHUB_REF_NAME has no annotated message; releasing without notes"
+            echo "See the commit log for what changed." > release-notes.md
+          fi
+          cat release-notes.md
+
+      # Create it, or bring an existing one back in line with the tag. Creating
+      # unconditionally fails the moment a release for this tag exists at all,
+      # which makes the job impossible to re-run after an unrelated failure.
+      - name: Create or update the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "$GITHUB_REF_NAME is already released; updating it from the tag."
+            gh release edit "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file release-notes.md
+            gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" --notes-file release-notes.md dist/*
+          fi
+
+# There is no `twine upload` step, by decision rather than by oversight. This
+# package is not published beyond this repository. A release is a tag, a GitHub
+# Release, and the sdist and wheel attached to it, which `pip install <url>` reads
+# directly. Nothing here needs a PyPI account or a token.

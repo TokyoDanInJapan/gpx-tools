@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # The workflows pin their actions by SHA, so this is what keeps them current.
+  # It rewrites the `# vN` comment alongside each pin.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  # The tools' own dependencies. Grouped into one pull request: these are a
+  # plotting library, a tile renderer and an image library, and reviewing them
+  # one at a time costs more attention than it buys.
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      all-dependencies:
+        patterns: ['*']
