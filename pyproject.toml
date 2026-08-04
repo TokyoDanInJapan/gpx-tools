@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gpx-tools"
-version = "1.0.0"
+version = "1.1.0"
 description = "Turn a GPX track into the figures, maps, profiles and terrain models a ride report needs."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -54,6 +54,7 @@ gpx-multimap = "maps.multimap:main"
 gpx-poi-check = "maps.poi_check:main"
 gpx-prefecture-map = "maps.prefecture_map:main"
 gpx-voxel = "terrain.voxel:main"
+gpx-stamps = "terrain.stamps:main"
 gpx-photo-points = "photos.photo_points:main"
 gpx-statcharts = "charts.statcharts:main"
 

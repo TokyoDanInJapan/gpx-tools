@@ -86,6 +86,22 @@ def read_points(path):
     return points
 
 
+def points_in_bbox(points, bbox):
+    """True if any of the points fall inside (south, west, north, east).
+
+    A route is kept when it has at least one point in the box, so a track that
+    merely clips the region still counts. With bbox None, every route is kept.
+
+    Here rather than in the tool that first wanted it, because two now do:
+    both use it to keep a track that happened elsewhere off a map of somewhere
+    else.
+    """
+    if bbox is None:
+        return True
+    south, west, north, east = bbox
+    return any(south <= lat <= north and west <= lon <= east for lat, lon, _ in points)
+
+
 def read_segments(path):
     """Return track points grouped by segment: a list of point lists.
 

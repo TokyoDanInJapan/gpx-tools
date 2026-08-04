@@ -12,7 +12,7 @@ Tools are grouped by what they do. Each group has its own README.
 | --- | --- |
 | [`track/`](track/README.md) | reading and editing the track itself - stats, merge, split, metadata |
 | [`maps/`](maps/README.md) | drawing a track onto map tiles, with the places it passes |
-| [`terrain/`](terrain/README.md) | the elevation profile, and the voxel terrain model |
+| [`terrain/`](terrain/README.md) | the elevation profile, the voxel model, and country line work |
 | [`photos/`](photos/README.md) | placing a gallery's photographs along the track |
 | [`charts/`](charts/README.md) | aggregating many tracks into statistics and charts |
 
@@ -151,7 +151,7 @@ the notes from the tag's own message. Nothing is published to PyPI. To install a
 release, point `pip` at the wheel on the release page, or at the tag:
 
 ```bash
-pip install "gpx-tools[all] @ git+https://github.com/TokyoDanInJapan/gpx-tools@v1.0.0"
+pip install "gpx-tools[all] @ git+https://github.com/TokyoDanInJapan/gpx-tools@v1.1.0"
 ```
 
 Pin the tag rather than tracking a branch. Several of these tools write JSON
