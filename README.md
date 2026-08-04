@@ -151,7 +151,7 @@ the notes from the tag's own message. Nothing is published to PyPI. To install a
 release, point `pip` at the wheel on the release page, or at the tag:
 
 ```bash
-pip install "gpx-tools[all] @ git+https://github.com/TokyoDanInJapan/gpx-tools@v1.1.0"
+pip install "gpx-tools[all] @ git+https://github.com/TokyoDanInJapan/gpx-tools@v1.1.1"
 ```
 
 Pin the tag rather than tracking a branch. Several of these tools write JSON
@@ -159,6 +159,23 @@ that something else reads - `route.json`, `photos.json`, `voxel.json`, the stat
 cards - and a consumer that follows `main` can have its input change under it
 without a commit of its own.
 
+## The bundled data, which is not ours
+
+Two GeoJSON files ship with the package so the tools that need boundaries need
+no network and no key. **The MIT licence below covers the code, not them.**
+
+- **`japan_prefectures.geojson`** — the 47 prefectures, derived from Global Map
+  Japan (地球地図日本), © 国土地理院 (GSI), obtained through
+  [dataofjapan/land](https://github.com/dataofjapan/land). Credit the source if
+  you use it, and note that commercial use is asked to file a usage report with
+  GSI - something this licence cannot grant on your behalf.
+- **`uk_nz_outlines.geojson`** — the UK and New Zealand, trimmed from
+  [Natural Earth](https://www.naturalearthdata.com/) 1:50m, which is public
+  domain and asks for no credit.
+
+[`common/data/README.md`](common/data/README.md) says the same, and ships inside
+the wheel beside the files themselves.
+
 ## Licence
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE). It covers the code. See above for the data.

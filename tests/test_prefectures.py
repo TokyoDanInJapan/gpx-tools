@@ -1,6 +1,7 @@
 """Point-in-polygon over the prefecture boundaries that ship with the package."""
 
 import json
+import pathlib
 
 import pytest
 
@@ -18,6 +19,18 @@ def test_the_boundaries_ship_with_the_package():
     with open(DEFAULT_GEOJSON, encoding="utf-8") as fh:
         data = json.load(fh)
     assert len(data["features"]) == 47
+
+
+def test_their_attribution_ships_with_them():
+    """These polygons are somebody else's, and the distributor asks to be
+    credited. A wheel carrying the data without the notice would leave the
+    credit behind in a repository nobody installing it has read."""
+    notice = pathlib.Path(DEFAULT_GEOJSON).parent / "README.md"
+    assert notice.exists()
+    text = notice.read_text(encoding="utf-8")
+    assert "国土地理院" in text
+    assert "dataofjapan/land" in text
+    assert "Natural Earth" in text
 
 
 def test_clean_name_handles_the_four_that_are_not_ken():
