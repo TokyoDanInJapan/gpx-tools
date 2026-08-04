@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gpx-tools"
-version = "1.1.0"
+version = "1.1.1"
 description = "Turn a GPX track into the figures, maps, profiles and terrain models a ride report needs."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -64,10 +64,12 @@ gpx-statcharts = "charts.statcharts:main"
 [tool.setuptools]
 packages = ["common", "charts", "maps", "photos", "terrain", "track"]
 
-# The prefecture boundaries are data the tools cannot work without, so they ship
-# inside the wheel rather than being downloaded or looked for on disk.
+# The boundaries are data the tools cannot work without, so they ship inside the
+# wheel rather than being downloaded or looked for on disk. Their attribution
+# ships with them: a wheel carrying the polygons without the notice would be
+# redistributing somebody's data with the credit left behind in a repository.
 [tool.setuptools.package-data]
-common = ["data/*.geojson"]
+common = ["data/*.geojson", "data/README.md"]
 
 [tool.ruff]
 line-length = 100
