@@ -31,7 +31,12 @@ classifiers = [
 maps = ["staticmap>=0.5", "Pillow>=9.0"]
 charts = ["matplotlib>=3.5"]
 photos = ["Pillow>=9.0", "timezonefinder>=6.0"]
-all = ["staticmap>=0.5", "Pillow>=9.0", "matplotlib>=3.5", "timezonefinder>=6.0"]
+# numpy is a real import in terrain/, not something matplotlib happens to drag
+# in - which it did, so [all] always worked and the missing declaration never
+# showed. gpx-voxel reads tiles through numpy and writes its PNG with Pillow;
+# gpx-stamps rasterises land masks with matplotlib's Path.
+terrain = ["numpy>=1.24", "Pillow>=9.0", "matplotlib>=3.5"]
+all = ["staticmap>=0.5", "Pillow>=9.0", "matplotlib>=3.5", "numpy>=1.24", "timezonefinder>=6.0"]
 dev = [
     "pytest>=7",
     "pytest-cov>=4",
