@@ -99,7 +99,7 @@ jobs:
           /tmp/check/bin/pip install "$(echo dist/*.whl)[all]"
           for tool in gpx-stats gpx-ridestats gpx-merge gpx-merge-segments \
                       gpx-split gpx-metadata gpx-mapgen gpx-multimap \
-                      gpx-poi-check gpx-prefecture-map gpx-voxel \
+                      gpx-poi-check gpx-prefecture-map gpx-voxel gpx-stamps \
                       gpx-photo-points gpx-statcharts; do
             /tmp/check/bin/$tool --help > /dev/null || exit 1
           done

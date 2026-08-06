@@ -15,7 +15,7 @@ longer than that; you will be told either way rather than left waiting.
 
 ## What is supported
 
-The latest patch version, currently `1.0.x`. Older versions are not patched. Consumers pin a tag in their
+The latest patch version, currently `1.1.x`. Older versions are not patched. Consumers pin a tag in their
 dependency specifier, so upgrading is a one-line change - see the release notes for anything that changed.
 
 ## The threat model, stated plainly

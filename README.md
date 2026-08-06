@@ -31,6 +31,7 @@ pip install .                    # stats, profiles, merge/split, metadata
 pip install ".[maps]"            # + route maps and coverage maps (staticmap, Pillow)
 pip install ".[charts]"          # + the aggregate bar charts (matplotlib)
 pip install ".[photos]"          # + photograph placement (Pillow, timezonefinder)
+pip install ".[terrain]"         # + the terrain model and stamps (numpy, Pillow, matplotlib)
 pip install ".[all]"             # everything
 pip install -e ".[all,dev]"      # or, to keep editing in place
 ```
