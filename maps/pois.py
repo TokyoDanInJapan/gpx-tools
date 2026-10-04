@@ -30,6 +30,9 @@ _LINK_RE = re.compile(r"\[([^\]]+)\]\((https?://[^)\s]+)\)")
 _PAREN_RE = re.compile(r"[（(]([^）)]*)[）)]")
 # Any CJK / Japanese (kanji, kana, full-width) character.
 _CJK_RE = re.compile(r"[　-ヿ㐀-鿿＀-￯]")
+# The opening tag of a Japanese-translation div: <div class="lang-ja" lang="ja">,
+# or the older class="aw-lang-ja".
+_JA_DIV_RE = re.compile(r'<div\b[^>]*\blang(?:-ja\b|="ja")')
 # A Markdown heading line, such as "## Sights on the Way".
 _HEADING_RE = re.compile(r"\s{0,3}#{1,6}\s+(.*\S)")
 # Keywords that mark a place (or its section) as a campsite or an onsen. Tested
@@ -74,14 +77,19 @@ def extract_pois(post_path):
     """
     pois, seen = [], set()
     section = None
-    in_ja = False  # inside an aw-lang-ja translation block
+    in_ja = False  # inside a Japanese translation block
     with open(post_path, encoding="utf-8") as fh:
         for line in fh:
             # Bilingual posts repeat every place inside a Japanese-translation
-            # div (<div class="aw-lang-ja" lang="ja"> … </div>). Those links point
+            # div (<div class="lang-ja" lang="ja"> … </div>). Those links point
             # at the same POIs as the English ones, so skip them or every marker
             # would be plotted twice. The English/neutral prose is the source.
-            if "aw-lang-ja" in line:
+            #
+            # The match takes the lang="ja" attribute or a lang-ja class, with
+            # or without the aw- prefix that older posts carry. Matching one
+            # literal class name broke silently when the site renamed it, and
+            # every bilingual map came out with each marker twice.
+            if _JA_DIV_RE.search(line):
                 in_ja = True
                 continue
             if in_ja:

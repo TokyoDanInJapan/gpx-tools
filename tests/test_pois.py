@@ -8,6 +8,8 @@ and is where the wrong answers would come from.
 
 import json
 
+import pytest
+
 from maps import pois
 
 
@@ -56,11 +58,19 @@ def test_the_section_types_a_bare_name(tmp_path):
     assert found["category"] == "camp"
 
 
-def test_the_japanese_translation_block_is_skipped(tmp_path):
+@pytest.mark.parametrize("opening", [
+    '<div class="lang-ja" lang="ja">',
+    '<div class="aw-lang-ja" lang="ja">',
+    '<div class="lang-ja">',
+    '<div lang="ja">',
+])
+def test_the_japanese_translation_block_is_skipped(tmp_path, opening):
     """Otherwise every marker on a bilingual post is plotted twice."""
-    body = ('Rode past [Lake Miyagase](https://example.com).\n\n'
-            '<div class="aw-lang-ja" lang="ja">\n'
-            '[宮ヶ瀬湖](https://example.com)\n'
+    body = ('<div class="lang-en">\n\n'
+            'Rode past [Lake Miyagase](https://example.com).\n\n'
+            "</div>\n\n"
+            f"{opening}\n\n"
+            '[宮ヶ瀬湖](https://example.com)\n\n'
             "</div>\n")
     found = pois.extract_pois(write(tmp_path, body))
     assert [p["name"] for p in found] == ["Lake Miyagase"]
